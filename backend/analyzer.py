@@ -17,7 +17,7 @@ def get_model():
 
 def analyze_resume_for_hr(resume_text: str) -> dict:
     """
-    Analyzes resume text for HR: returns ATS score and a list of Q&As.
+    Analyzes resume text for HR: returns ATS score, summary, tailored Q&As, and tailored MCQs.
     """
     if not api_key or not api_key.strip():
         print("GEMINI_API_KEY is not configured. Returning simulated mock data.")
@@ -35,6 +35,30 @@ def analyze_resume_for_hr(resume_text: str) -> dict:
                     "type": "Behavioral",
                     "suggested_answer": "Discuss active listening, comparing pros/cons objectively, and aligning with business goals."
                 }
+            ],
+            "mcqs": [
+                {
+                    "question": "Which of the following is a key feature of Python's FastAPI framework?",
+                    "options": [
+                        "Automatic interactive API documentation (Swagger UI)",
+                        "Server-side rendering only",
+                        "No support for asynchronous programming",
+                        "Strictly synchronous request processing"
+                    ],
+                    "correct_option": "A",
+                    "explanation": "FastAPI automatically generates interactive Swagger UI documentation for APIs based on open standards."
+                },
+                {
+                    "question": "What is the primary purpose of using 'git merge' in source control management?",
+                    "options": [
+                        "To delete a branch from remote repository",
+                        "To combine development history from one branch into another",
+                        "To revert the latest commit on main branch",
+                        "To compile local source files into an executable"
+                    ],
+                    "correct_option": "B",
+                    "explanation": "git merge combines changes from one Git branch into another."
+                }
             ]
         }
 
@@ -43,7 +67,8 @@ def analyze_resume_for_hr(resume_text: str) -> dict:
     You are an expert HR Manager and Technical Recruiter. Analyze the following resume.
     Provide:
     1. An ATS Score (0 to 100) indicating how well-structured and matching this resume is for general roles corresponding to the candidate's profile.
-    2. A list of 8 tailored interview questions (a mix of technical and behavioral) based on the candidate's experience, along with detailed model answers for each.
+    2. A list of 5 tailored interview questions (a mix of technical and behavioral) based on the candidate's experience, along with detailed model answers for each.
+    3. A list of 5 tailored multiple-choice questions (MCQs) testing candidate concepts relevant to their resume experience. Each MCQ must have exactly 4 options ("A", "B", "C", "D"), a correct option letter, and a brief explanation of the correct option.
 
     Format your output strictly as a JSON object with this exact structure:
     {{
@@ -54,6 +79,14 @@ def analyze_resume_for_hr(resume_text: str) -> dict:
                 "question": "Question text",
                 "type": "Technical" or "Behavioral",
                 "suggested_answer": "Model answer text"
+            }}
+        ],
+        "mcqs": [
+            {{
+                "question": "Question text",
+                "options": ["Option A", "Option B", "Option C", "Option D"],
+                "correct_option": "A" or "B" or "C" or "D",
+                "explanation": "Brief explanation of why the correct option is right"
             }}
         ]
     }}

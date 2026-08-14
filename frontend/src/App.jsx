@@ -39,6 +39,8 @@ function App() {
   const [atsScore, setAtsScore] = useState(null);
   const [summary, setSummary] = useState('');
   const [qaList, setQaList] = useState([]);
+  const [mcqList, setMcqList] = useState([]);
+  const [hrTab, setHrTab] = useState('qa'); // 'qa' | 'mcq'
   const [improvements, setImprovements] = useState([]);
   
   // Mock Test States
@@ -48,6 +50,7 @@ function App() {
   const [answers, setAnswers] = useState({}); // { questionIndex: answerText }
   const [evaluationResult, setEvaluationResult] = useState(null);
   const [openQaIndex, setOpenQaIndex] = useState(null);
+  const [openMcqIndex, setOpenMcqIndex] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -94,12 +97,15 @@ function App() {
     setAtsScore(null);
     setSummary('');
     setQaList([]);
+    setMcqList([]);
+    setHrTab('qa');
     setImprovements([]);
     setMockQuestions([]);
     setResumeText('');
     setTestState('setup');
     setAnswers({});
     setEvaluationResult(null);
+    setOpenMcqIndex(null);
     setError('');
   };
 
@@ -141,6 +147,7 @@ function App() {
       if (role === 'hr') {
         setSummary(data.summary || '');
         setQaList(data.questions || []);
+        setMcqList(data.mcqs || []);
       } else {
         setImprovements(data.improvements || []);
         setResumeText(data.resume_text || '');
@@ -326,6 +333,87 @@ function App() {
     const link = document.createElement('a');
     link.href = url;
     link.download = 'interview_questions.doc';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportMcqsToCSV = (mcqs) => {
+    if (!mcqs || mcqs.length === 0) return;
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Question,Option A,Option B,Option C,Option D,Correct Option,Explanation\n";
+    
+    mcqs.forEach((item) => {
+      const question = `"${item.question.replace(/"/g, '""')}"`;
+      const optA = `"${(item.options?.[0] || '').replace(/"/g, '""')}"`;
+      const optB = `"${(item.options?.[1] || '').replace(/"/g, '""')}"`;
+      const optC = `"${(item.options?.[2] || '').replace(/"/g, '""')}"`;
+      const optD = `"${(item.options?.[3] || '').replace(/"/g, '""')}"`;
+      const correct = `"${(item.correct_option || '').replace(/"/g, '""')}"`;
+      const explanation = `"${(item.explanation || '').replace(/"/g, '""')}"`;
+      csvContent += `${question},${optA},${optB},${optC},${optD},${correct},${explanation}\n`;
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "interview_mcqs.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportMcqsToWord = (mcqs) => {
+    if (!mcqs || mcqs.length === 0) return;
+    
+    let htmlString = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <title>Interview Multiple Choice Questions</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333333; }
+          h1 { color: #4f46e5; border-bottom: 2px solid #4f46e5; padding-bottom: 5px; font-size: 24px; }
+          .question-card { margin-bottom: 25px; padding: 15px; border-left: 4px solid #10b981; background-color: #f9fafb; }
+          .question-title { font-weight: bold; font-size: 16px; color: #111111; margin-bottom: 8px; }
+          .options-list { margin-left: 15px; margin-bottom: 10px; }
+          .option-item { margin-bottom: 4px; }
+          .answer-label { font-weight: bold; color: #047857; margin-top: 10px; }
+          .explanation-text { color: #374151; font-style: italic; }
+        </style>
+      </head>
+      <body>
+        <h1>Tailored Multiple Choice Questions (MCQs)</h1>
+        <p>Generated via TalentAI Assessment matching candidate resume details.</p>
+        <hr/>
+    `;
+    
+    mcqs.forEach((item, index) => {
+      htmlString += `
+        <div class="question-card">
+          <div class="question-title">Q${index + 1}: ${item.question}</div>
+          <div class="options-list">
+            <div class="option-item"><b>A:</b> ${item.options?.[0] || 'N/A'}</div>
+            <div class="option-item"><b>B:</b> ${item.options?.[1] || 'N/A'}</div>
+            <div class="option-item"><b>C:</b> ${item.options?.[2] || 'N/A'}</div>
+            <div class="option-item"><b>D:</b> ${item.options?.[3] || 'N/A'}</div>
+          </div>
+          <div class="answer-label">Correct Option: ${item.correct_option}</div>
+          <div class="explanation-text"><b>Explanation:</b> ${item.explanation || 'N/A'}</div>
+        </div>
+      `;
+    });
+    
+    htmlString += `</body></html>`;
+    
+    const blob = new Blob(['\ufeff' + htmlString], {
+      type: 'application/msword'
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'interview_mcqs.doc';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -854,45 +942,122 @@ function App() {
             <div className="glass-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                 <h3 style={{ fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                  <FileText size={20} color="var(--accent-primary)" /> Custom Interview Questions ({qaList.length})
+                  <FileText size={20} color="var(--accent-primary)" /> Custom Assessment Materials
                 </h3>
-                <div className="export-actions-row" style={{ margin: 0 }}>
-                  <button className="btn-export btn-export-csv" onClick={() => exportToCSV(qaList)}>
-                    <Download size={14} /> CSV (Excel)
-                  </button>
-                  <button className="btn-export btn-export-word" onClick={() => exportToWord(qaList)}>
-                    <Download size={14} /> Word (Doc)
-                  </button>
-                </div>
-              </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-                Tailored interview questions generated by Gemini AI matching candidate's resume history. Expand to read suggested ideal responses.
-              </p>
-
-              <div>
-                {qaList.map((item, idx) => (
-                  <div key={idx} className="qa-card">
-                    <div className="qa-header" onClick={() => toggleQa(idx)}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <span className={`qa-badge ${item.type?.toLowerCase()}`}>
-                          {item.type || 'Technical'}
-                        </span>
-                        <h4 className="qa-title">{item.question}</h4>
-                      </div>
-                      <div style={{ color: 'var(--text-muted)', paddingTop: '4px' }}>
-                        {openQaIndex === idx ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                      </div>
-                    </div>
-                    
-                    {openQaIndex === idx && (
-                      <div className="qa-body">
-                        <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>Suggested Ideal Answer:</strong>
-                        {item.suggested_answer}
-                      </div>
-                    )}
+                {hrTab === 'qa' ? (
+                  <div className="export-actions-row" style={{ margin: 0 }}>
+                    <button className="btn-export btn-export-csv" onClick={() => exportToCSV(qaList)}>
+                      <Download size={14} /> CSV (Excel)
+                    </button>
+                    <button className="btn-export btn-export-word" onClick={() => exportToWord(qaList)}>
+                      <Download size={14} /> Word (Doc)
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  <div className="export-actions-row" style={{ margin: 0 }}>
+                    <button className="btn-export btn-export-csv" onClick={() => exportMcqsToCSV(mcqList)}>
+                      <Download size={14} /> CSV (Excel)
+                    </button>
+                    <button className="btn-export btn-export-word" onClick={() => exportMcqsToWord(mcqList)}>
+                      <Download size={14} /> Word (Doc)
+                    </button>
+                  </div>
+                )}
               </div>
+
+              <div className="practice-tab-container" style={{ marginBottom: '20px' }}>
+                <button 
+                  className={`practice-tab-btn ${hrTab === 'qa' ? 'active' : ''}`}
+                  onClick={() => setHrTab('qa')}
+                >
+                  Interview Q&As ({qaList.length})
+                </button>
+                <button 
+                  className={`practice-tab-btn ${hrTab === 'mcq' ? 'active' : ''}`}
+                  onClick={() => setHrTab('mcq')}
+                >
+                  Multiple Choice ({mcqList.length})
+                </button>
+              </div>
+
+              {hrTab === 'qa' ? (
+                <>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
+                    Tailored interview questions generated by Gemini AI matching candidate's resume history. Expand to read suggested ideal responses.
+                  </p>
+                  <div>
+                    {qaList.map((item, idx) => (
+                      <div key={idx} className="qa-card">
+                        <div className="qa-header" onClick={() => toggleQa(idx)}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <span className={`qa-badge ${item.type?.toLowerCase()}`}>
+                              {item.type || 'Technical'}
+                            </span>
+                            <h4 className="qa-title">{item.question}</h4>
+                          </div>
+                          <div style={{ color: 'var(--text-muted)', paddingTop: '4px' }}>
+                            {openQaIndex === idx ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                          </div>
+                        </div>
+                        
+                        {openQaIndex === idx && (
+                          <div className="qa-body">
+                            <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>Suggested Ideal Answer:</strong>
+                            {item.suggested_answer}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
+                    Personalized multiple choice questions generated based on the candidate's skills and experience. Expand to view the options, correct answer, and detailed explanation.
+                  </p>
+                  <div>
+                    {mcqList.map((item, idx) => (
+                      <div key={idx} className="qa-card">
+                        <div className="qa-header" onClick={() => {
+                          if (openMcqIndex === idx) setOpenMcqIndex(null);
+                          else setOpenMcqIndex(idx);
+                        }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <h4 className="qa-title">Q{idx + 1}: {item.question}</h4>
+                          </div>
+                          <div style={{ color: 'var(--text-muted)', paddingTop: '4px' }}>
+                            {openMcqIndex === idx ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                          </div>
+                        </div>
+                        
+                        {openMcqIndex === idx && (
+                          <div className="qa-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div className="mcq-options-grid" style={{ pointerEvents: 'none', margin: '4px 0' }}>
+                              {item.options?.map((opt, oIdx) => {
+                                const letter = String.fromCharCode(65 + oIdx);
+                                const isCorrect = item.correct_option === letter;
+                                return (
+                                  <div key={oIdx} className={`mcq-option-card ${isCorrect ? 'selected' : ''}`}>
+                                    <span className="mcq-option-letter">{letter}</span>
+                                    <span className="mcq-option-text">{opt}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', marginTop: '4px' }}>
+                              <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>
+                                Correct Option: <span style={{ color: 'var(--color-success)', fontWeight: '700' }}>{item.correct_option}</span>
+                              </strong>
+                              <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '2px' }}>Explanation:</strong>
+                              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>{item.explanation}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
