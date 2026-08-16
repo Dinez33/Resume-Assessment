@@ -40,6 +40,13 @@ class MockTestGenerateRequest(BaseModel):
 def read_root():
     return {"message": "Resume Assessment and Mock Test API is running"}
 
+@app.get("/api/health")
+def health():
+    return {
+        "status": "ok",
+        "message": "FastAPI is running on Vercel"
+    }
+    
 def handle_api_exception(e: Exception):
     err_str = str(e)
     # Check for quota or rate limit error indicators
